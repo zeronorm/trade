@@ -1,0 +1,15 @@
+.DS_Store
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+data_store/*
+!data_store/.gitkeep
+
+logs/*
+!logs/.gitkeep
+
+notebooks/*
+!notebooks/.gitkeep

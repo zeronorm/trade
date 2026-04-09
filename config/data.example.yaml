@@ -1,0 +1,18 @@
+provider: sina
+paths:
+  snapshots: data_store/snapshots
+  latest_daily: data_store/daily_latest
+  history_2y: data_store/history_2y
+  sync_state: data_store/metadata/kline_sync
+latest:
+  latest_mode: latest
+  markets:
+    - a
+    - hk
+    - us
+history:
+  mode: history-backfill
+  batch_size:
+    a: 300
+    hk: 150
+    us: 80

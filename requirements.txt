@@ -1,0 +1,5 @@
+akshare==1.18.51
+pandas>=2.2,<3
+requests>=2.32,<3
+py-mini-racer>=0.6,<1
+tqdm>=4.66,<5

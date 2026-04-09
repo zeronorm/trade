@@ -13,3 +13,4 @@ logs/*
 
 notebooks/*
 !notebooks/.gitkeep
+!notebooks/*.ipynb

@@ -115,8 +115,9 @@ def _fetch_a_history(provider_symbol: str, start_date: str, end_date: str) -> pd
     ]
     mask = (merged.index >= pd.to_datetime(start_date)) & (merged.index <= pd.to_datetime(end_date))
     merged = merged.loc[mask].copy()
+    merged.index.name = "trade_date"
     merged.reset_index(inplace=True)
-    merged.rename(columns={"index": "trade_date"}, inplace=True)
+    merged.rename(columns={"date": "trade_date", "index": "trade_date"}, inplace=True)
     return merged
 
 

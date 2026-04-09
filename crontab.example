@@ -2,13 +2,13 @@
 #
 # Latest full-market data
 # A-share latest snapshot -> flattened latest daily
-40 15 * * 1-5 cd /Users/yugh/YUGH/dev/trade && /Users/yugh/YUGH/dev/trade/scripts/run_kline_sync.sh --mode latest --market a >> /Users/yugh/YUGH/dev/trade/logs/latest_a.log 2>&1
+40 15 * * 1-5 cd /root/work/trade && /root/work/trade/scripts/run_kline_sync.sh --mode latest --market a >> /root/work/trade/logs/latest_a.log 2>&1
 # HK latest snapshot -> flattened latest daily
-40 16 * * 1-5 cd /Users/yugh/YUGH/dev/trade && /Users/yugh/YUGH/dev/trade/scripts/run_kline_sync.sh --mode latest --market hk >> /Users/yugh/YUGH/dev/trade/logs/latest_hk.log 2>&1
+40 16 * * 1-5 cd /root/work/trade && /root/work/trade/scripts/run_kline_sync.sh --mode latest --market hk >> /root/work/trade/logs/latest_hk.log 2>&1
 # US latest snapshot -> flattened latest daily, run next morning China time
-20 06 * * 2-6 cd /Users/yugh/YUGH/dev/trade && /Users/yugh/YUGH/dev/trade/scripts/run_kline_sync.sh --mode latest --market us >> /Users/yugh/YUGH/dev/trade/logs/latest_us.log 2>&1
+20 06 * * 2-6 cd /root/work/trade && /root/work/trade/scripts/run_kline_sync.sh --mode latest --market us >> /root/work/trade/logs/latest_us.log 2>&1
 #
 # Slow background history backfill
-30 20 * * 1-5 cd /Users/yugh/YUGH/dev/trade && /Users/yugh/YUGH/dev/trade/scripts/run_kline_sync.sh --mode history-backfill --market a --batch-size 300 --continue-on-error >> /Users/yugh/YUGH/dev/trade/logs/history_a.log 2>&1
-00 21 * * 1-5 cd /Users/yugh/YUGH/dev/trade && /Users/yugh/YUGH/dev/trade/scripts/run_kline_sync.sh --mode history-backfill --market hk --batch-size 150 --continue-on-error >> /Users/yugh/YUGH/dev/trade/logs/history_hk.log 2>&1
-40 06 * * 2-6 cd /Users/yugh/YUGH/dev/trade && /Users/yugh/YUGH/dev/trade/scripts/run_kline_sync.sh --mode history-backfill --market us --batch-size 80 --continue-on-error >> /Users/yugh/YUGH/dev/trade/logs/history_us.log 2>&1
+30 20 * * 1-5 cd /root/work/trade && /root/work/trade/scripts/run_kline_sync.sh --mode history-backfill --market a --batch-size 300 --continue-on-error >> /root/work/trade/logs/history_a.log 2>&1
+00 21 * * 1-5 cd /root/work/trade && /root/work/trade/scripts/run_kline_sync.sh --mode history-backfill --market hk --batch-size 150 --continue-on-error >> /root/work/trade/logs/history_hk.log 2>&1
+40 06 * * 2-6 cd /root/work/trade && /root/work/trade/scripts/run_kline_sync.sh --mode history-backfill --market us --batch-size 80 --continue-on-error >> /root/work/trade/logs/history_us.log 2>&1

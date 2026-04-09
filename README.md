@@ -220,13 +220,13 @@ conda run -n dev python -c "import akshare; print(akshare.__version__)"
 启用前先建日志目录：
 
 ```bash
-mkdir -p logs
+mkdir -p /root/work/trade/logs
 ```
 
 然后：
 
 ```bash
-crontab crontab.example
+crontab /root/work/trade/crontab.example
 ```
 
 或手动：

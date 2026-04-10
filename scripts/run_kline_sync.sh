@@ -190,8 +190,8 @@ run_market() {
 }
 
 main() {
-  local -a markets
-  local -a failed_markets
+  local -a markets=()
+  local -a failed_markets=()
   cd "${PROJECT_ROOT}"
   if [[ "${MARKET}" == "all" ]]; then
     markets=(a hk us)

@@ -1,13 +1,23 @@
-from src.data.storage import HistoryFileStore, LatestDailyStore, SnapshotFileStore, SyncStateStore
+import pandas as pd
+
+from src.data.storage import MarketDaySpotStore, SymbolHistStore
 
 
 def test_storage_paths(tmp_path) -> None:
-    snapshot_store = SnapshotFileStore(tmp_path / "snapshots")
-    latest_store = LatestDailyStore(tmp_path / "daily_latest")
-    history_store = HistoryFileStore(tmp_path / "history_2y")
-    state_store = SyncStateStore(tmp_path / "metadata")
+    day_store = MarketDaySpotStore(tmp_path / "day")
+    hist_store = SymbolHistStore(tmp_path / "hist")
 
-    assert snapshot_store.build_path("a", "2026-04-09").name == "a.2026-04-09.csv"
-    assert latest_store.build_path("us", "2026-04-09").name == "us.2026-04-09.csv"
-    assert history_store.build_path("hk", "00700", "2026-04-09").name == "00700.2026-04-09.history_2y.csv"
-    assert state_store.build_path("a").name == "a.json"
+    assert day_store.build_path("cn", "2026-04-09").name == "cn.2026-04-09.csv"
+    assert hist_store.build_path("hk").name == "hk.csv"
+    assert hist_store.build_path("cn").name == "cn.csv"
+
+
+def test_day_store_preserves_leading_zero_symbols(tmp_path) -> None:
+    day_store = MarketDaySpotStore(tmp_path / "day")
+    sample = pd.DataFrame(
+        [{"market": "hk", "board": "", "symbol": "00542", "provider_symbol": "00542", "trade_date": "2026-04-12"}]
+    )
+    day_store.save(sample, "hk", "2026-04-12")
+    loaded, _ = day_store.load("hk", "2026-04-12")
+    assert loaded.loc[0, "symbol"] == "00542"
+    assert loaded.loc[0, "provider_symbol"] == "00542"

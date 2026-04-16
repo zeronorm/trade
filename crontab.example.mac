@@ -1,7 +1,7 @@
 SHELL=/bin/bash
 
-PROJECT_DIR=/root/work/trade
-CONDA_BIN=/home/stock/miniconda3/bin/conda
+PROJECT_DIR=/Users/yugh/YUGH/dev/trade
+CONDA_BIN=/Users/yugh/miniconda3/bin/conda
 CONDA_ENV=dev
 LOG_DIR=${PROJECT_DIR}/logs
 

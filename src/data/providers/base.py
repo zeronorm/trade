@@ -6,20 +6,20 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from src.data.models import HistoryRequest, SnapshotRequest
+from src.data.models import MarketDaySpotRequest, SymbolHistRequest
 
 
-class SnapshotProviderError(RuntimeError):
+class DataProviderError(RuntimeError):
     """Raised when provider fetch or normalization fails."""
 
 
-class SnapshotProvider(ABC):
+class MarketDaySpotProvider(ABC):
     @abstractmethod
-    def fetch_snapshot(self, request: SnapshotRequest) -> pd.DataFrame:
+    def fetch_market_day_spot(self, request: MarketDaySpotRequest) -> pd.DataFrame:
         raise NotImplementedError
 
 
-class DailyKlineProvider(ABC):
+class SymbolHistProvider(ABC):
     @abstractmethod
-    def fetch_history(self, request: HistoryRequest) -> pd.DataFrame:
+    def fetch_symbol_hist(self, request: SymbolHistRequest) -> pd.DataFrame:
         raise NotImplementedError

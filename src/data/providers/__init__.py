@@ -1,13 +1,9 @@
 """Provider exports."""
 
-from .base import DailyKlineProvider, SnapshotProvider, SnapshotProviderError
-from .sina import SinaSnapshotProvider
-from .sina_kline import SinaHistoryKlineProvider
+from .base import DataProviderError, MarketDaySpotProvider, SymbolHistProvider
 
 __all__ = [
-    "DailyKlineProvider",
-    "SnapshotProvider",
-    "SnapshotProviderError",
-    "SinaHistoryKlineProvider",
-    "SinaSnapshotProvider",
+    "DataProviderError",
+    "MarketDaySpotProvider",
+    "SymbolHistProvider",
 ]

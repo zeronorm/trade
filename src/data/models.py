@@ -1,82 +1,24 @@
-"""Data-layer models and shared constants."""
+"""Shared types and normalization helpers."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal
 
 MarketName = Literal["cn", "hk", "us"]
-ProviderName = Literal["akshare"]
 
-MARKET_DAY_SPOT_COLUMNS = [
-    "market",
-    "board",
-    "symbol",
-    "provider_symbol",
-    "name",
-    "cname",
-    "open",
-    "close",
-    "high",
-    "low",
-    "volume",
-    "amount",
-    "trade_date",
-    "source",
+SPOT_COLUMNS = [
+    "market", "board", "symbol", "provider_symbol",
+    "name", "cname",
+    "open", "close", "high", "low", "volume", "amount",
+    "trade_date", "source",
 ]
 
-SYMBOL_HIST_COLUMNS = [
-    "market",
-    "board",
-    "symbol",
-    "provider_symbol",
-    "trade_date",
-    "open",
-    "close",
-    "high",
-    "low",
-    "volume",
-    "amount",
-    "amplitude",
-    "change_pct",
-    "change",
-    "turnover_rate",
-    "source",
+HIST_COLUMNS = [
+    "market", "board", "symbol", "provider_symbol", "trade_date",
+    "open", "close", "high", "low", "volume", "amount",
+    "amplitude", "change_pct", "change", "turnover_rate", "source",
 ]
-
-NUMERIC_COLUMNS = [
-    "open",
-    "close",
-    "high",
-    "low",
-    "volume",
-    "amount",
-    "amplitude",
-    "change_pct",
-    "change",
-    "turnover_rate",
-]
-
-
-@dataclass(frozen=True)
-class MarketDaySpotRequest:
-    market: MarketName
-    trade_date: str
-    provider: ProviderName = "akshare"
-
-
-@dataclass(frozen=True)
-class SymbolHistRequest:
-    market: MarketName
-    board: str
-    symbol: str
-    trade_date: str
-    provider_symbol: str = ""
-    start_date: str = ""
-    end_date: str = ""
-    adjust: str = "qfq"
-    provider: ProviderName = "akshare"
 
 
 def normalize_trade_date(value: str) -> str:
@@ -97,14 +39,7 @@ def history_start_date(end_date: str, *, days: int = 730) -> str:
     return (end_dt - timedelta(days=days)).strftime("%Y%m%d")
 
 
-def normalize_symbol(value: object) -> str:
-    text = str(value).strip()
-    if text.endswith(".0"):
-        text = text[:-2]
-    return text
-
-
-def normalize_optional_text(value: object) -> str:
+def clean(value: object) -> str:
     if value is None:
         return ""
     try:
@@ -118,8 +53,8 @@ def normalize_optional_text(value: object) -> str:
     return text
 
 
-def detect_a_board(symbol: str) -> str:
-    code = normalize_symbol(symbol).lower()
+def detect_board(symbol: str) -> str:
+    code = clean(symbol).lower()
     if code.startswith(("sh", "sz", "bj")):
         return code[:2]
     if code.startswith(("4", "8", "92")):
@@ -129,24 +64,17 @@ def detect_a_board(symbol: str) -> str:
     return "sz"
 
 
-def strip_a_prefix(symbol: str) -> str:
-    code = normalize_symbol(symbol).lower()
+def strip_prefix(symbol: str) -> str:
+    code = clean(symbol).lower()
     if code.startswith(("sh", "sz", "bj")):
         return code[2:]
     return code
 
 
-def normalize_board(market: MarketName, symbol: object) -> str:
-    text = normalize_symbol(symbol)
+def display_symbol(market: str, symbol: object) -> str:
+    text = clean(symbol)
     if market == "cn":
-        return detect_a_board(text)
-    return ""
-
-
-def normalize_display_symbol(market: MarketName, symbol: object) -> str:
-    text = normalize_symbol(symbol)
-    if market == "cn":
-        return strip_a_prefix(text)
+        return strip_prefix(text)
     if market == "hk":
         return text.zfill(5)
     if "." in text:
@@ -154,21 +82,14 @@ def normalize_display_symbol(market: MarketName, symbol: object) -> str:
     return text
 
 
-def normalize_provider_symbol(market: MarketName, board: object, symbol: object, provider_symbol: object) -> str:
-    current = normalize_optional_text(provider_symbol)
+def provider_symbol(market: str, board: str, symbol: str, raw: object = "") -> str:
+    current = clean(raw)
     if market == "cn":
         if current:
             return current
-        normalized_board = normalize_optional_text(board)
-        normalized_symbol = normalize_display_symbol("cn", symbol)
-        return f"{normalized_board}{normalized_symbol}" if normalized_board else normalized_symbol
+        b = clean(board)
+        s = display_symbol("cn", symbol)
+        return f"{b}{s}" if b else s
     if market == "hk":
-        candidate = current or normalize_optional_text(symbol)
-        return candidate.zfill(5)
-    return current or normalize_optional_text(symbol)
-
-
-def build_hist_key(board: str, symbol: str) -> str:
-    normalized_board = normalize_optional_text(board)
-    normalized_symbol = normalize_optional_text(symbol)
-    return f"{normalized_board}.{normalized_symbol}" if normalized_board else normalized_symbol
+        return (current or clean(symbol)).zfill(5)
+    return current or clean(symbol)

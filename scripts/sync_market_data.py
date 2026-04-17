@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import logging
+from datetime import datetime
 from pathlib import Path
 import sys
 from zoneinfo import ZoneInfo
@@ -15,59 +15,41 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.data import sync_market_data  # noqa: E402
 
-logger = logging.getLogger(__name__)
-
-MARKET_TIMEZONES = {
-    "cn": "Asia/Shanghai",
-    "hk": "Asia/Shanghai",
-    "us": "America/New_York",
-}
+MARKET_TZ = {"cn": "Asia/Shanghai", "hk": "Asia/Shanghai", "us": "America/New_York"}
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Sync per-market day spot and symbol history")
-    parser.add_argument("--market", choices=["cn", "hk", "us", "all"], default="all")
-    parser.add_argument(
-        "--trade-date",
-        default=None,
-        help="YYYY-MM-DD or YYYYMMDD; defaults to the current date in each market timezone",
-    )
-    parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--adjust", default="qfq")
-    parser.add_argument("--continue-on-error", action="store_true")
-    return parser.parse_args()
+    p = argparse.ArgumentParser(description="Sync market data")
+    p.add_argument("--market", choices=["cn", "hk", "us", "all"], default="all")
+    p.add_argument("--trade-date", default=None, help="YYYY-MM-DD or YYYYMMDD")
+    p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--adjust", default="qfq")
+    p.add_argument("--continue-on-error", action="store_true")
+    return p.parse_args()
 
 
-def resolve_trade_date(market: str, trade_date: str | None) -> str:
+def resolve_date(market: str, trade_date: str | None) -> str:
     if trade_date:
         return trade_date
-    timezone = MARKET_TIMEZONES[market]
-    return datetime.now(ZoneInfo(timezone)).strftime("%Y-%m-%d")
+    return datetime.now(ZoneInfo(MARKET_TZ[market])).strftime("%Y-%m-%d")
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     args = parse_args()
     markets = ["cn", "hk", "us"] if args.market == "all" else [args.market]
-    for market in markets:
-        trade_date = resolve_trade_date(market, args.trade_date)
-        result = sync_market_data(
-            market,
-            trade_date=trade_date,
-            limit=args.limit,
-            adjust=args.adjust,
-            continue_on_error=args.continue_on_error,
+
+    for mkt in markets:
+        td = resolve_date(mkt, args.trade_date)
+        r = sync_market_data(
+            mkt, trade_date=td, limit=args.limit,
+            adjust=args.adjust, continue_on_error=args.continue_on_error,
         )
-        logger.info("market data synced: %s", result)
-        interrupted = " interrupted=true" if result.get("interrupted") else ""
         print(
-            f"{market}: trade_date={result['trade_date']} "
-            f"day_rows={result['day_rows']} "
-            f"day_api_time_field={result['day_api_time_field']} day_api_time_value={result['day_api_time_value']} "
-            f"day={result['day_path']} "
-            f"new_symbols={result['hist_new_symbols']} success={result['hist_success']} "
-            f"skipped={result['hist_skipped']} errors={result['hist_errors']} "
-            f"hist_sample_trade_date={result['hist_sample_trade_date']} hist={result['hist_path']}{interrupted}"
+            f"{mkt}: date={r['trade_date']} "
+            f"day={r['day_rows']}rows → {r['day_path']} "
+            f"hist: new={r['new_symbols']} ok={r['hist_success']} skip={r['hist_skipped']} err={r['hist_errors']} "
+            f"→ {r['hist_path']}"
         )
 
 

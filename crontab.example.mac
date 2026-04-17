@@ -1,11 +1,11 @@
-SHELL=/bin/bash
+# crontab.example.mac — macOS
+# 合并使用: cat crontab.common crontab.example.mac | crontab -
 
-PROJECT_DIR=/Users/yugh/YUGH/dev/trade
-CONDA_BIN=/Users/yugh/miniconda3/bin/conda
-CONDA_ENV=dev
-LOG_DIR=${PROJECT_DIR}/logs
+# A股  收盘15:00 → 15:30
+30 15 * * 1-5  /bin/bash -l -c '${SYNC} --market cn >> ${LOG_DIR}/cn.log 2>&1'
 
-# unified market_data sync
-40 16 * * 1-5 cd ${PROJECT_DIR} && ${CONDA_BIN} run -n ${CONDA_ENV} python ${PROJECT_DIR}/scripts/sync_market_data.py --market cn --continue-on-error >> ${LOG_DIR}/market_cn.log 2>&1
-40 17 * * 1-5 cd ${PROJECT_DIR} && ${CONDA_BIN} run -n ${CONDA_ENV} python ${PROJECT_DIR}/scripts/sync_market_data.py --market hk --continue-on-error >> ${LOG_DIR}/market_hk.log 2>&1
-40 08 * * 2-6 cd ${PROJECT_DIR} && ${CONDA_BIN} run -n ${CONDA_ENV} python ${PROJECT_DIR}/scripts/sync_market_data.py --market us --continue-on-error >> ${LOG_DIR}/market_us.log 2>&1
+# 港股  收盘16:00 → 16:30
+30 16 * * 1-5  /bin/bash -l -c '${SYNC} --market hk >> ${LOG_DIR}/hk.log 2>&1'
+
+# 美股  收盘16:00 ET → 04:30 CST 次日
+30 4  * * 2-6  /bin/bash -l -c '${SYNC} --market us >> ${LOG_DIR}/us.log 2>&1'

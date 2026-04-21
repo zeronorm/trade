@@ -30,6 +30,26 @@ from src.data.models import (
 
 logger = logging.getLogger(__name__)
 
+_SPOT_NUMERIC_COLUMNS = ["open", "close", "high", "low", "volume", "amount"]
+
+# JS context compiled once, reused for all calls
+_CN_JS_CTX = None
+_US_JS_CTX = None
+
+
+def _cn_js_ctx():
+    global _CN_JS_CTX
+    if _CN_JS_CTX is None:
+        _CN_JS_CTX = execjs.compile(hk_js_decode)
+    return _CN_JS_CTX
+
+
+def _us_js_ctx():
+    global _US_JS_CTX
+    if _US_JS_CTX is None:
+        _US_JS_CTX = execjs.compile(zh_js_decode)
+    return _US_JS_CTX
+
 # ---------------------------------------------------------------------------
 # Day spot (full market snapshot)
 # ---------------------------------------------------------------------------
@@ -41,8 +61,12 @@ def _pick(frame: pd.DataFrame, aliases: list[str], default=pd.NA) -> pd.Series:
     return pd.Series([default] * len(frame), index=frame.index)
 
 
+def _decode_sina_payload(text: str, ctx) -> object:
+    return ctx.call("d", text.split("=")[1].split(";")[0].replace('"', ""))
+
+
 def _numeric(frame: pd.DataFrame) -> pd.DataFrame:
-    for col in ["open", "close", "high", "low", "volume", "amount"]:
+    for col in _SPOT_NUMERIC_COLUMNS:
         if col in frame.columns:
             frame[col] = pd.to_numeric(frame[col], errors="coerce")
     frame.drop_duplicates(subset=["board", "symbol"], keep="first", inplace=True)
@@ -103,6 +127,7 @@ def fetch_spot_us(trade_date: str) -> pd.DataFrame:
 
 SPOT_FETCHERS = {"cn": fetch_spot_cn, "hk": fetch_spot_hk, "us": fetch_spot_us}
 
+
 def fetch_spot(market: str, trade_date: str) -> pd.DataFrame:
     return SPOT_FETCHERS[market](trade_date)
 
@@ -110,11 +135,39 @@ def fetch_spot(market: str, trade_date: str) -> pd.DataFrame:
 # Symbol history (single stock)
 # ---------------------------------------------------------------------------
 
+
+def _empty_hist() -> pd.DataFrame:
+    return pd.DataFrame(columns=HIST_COLUMNS)
+
+
+def _filter_hist_dates(frame: pd.DataFrame, start: str, end: str) -> tuple[pd.DataFrame, str]:
+    if "trade_date" in frame.columns:
+        date_col = "trade_date"
+    elif "date" in frame.columns:
+        date_col = "date"
+    else:
+        frame = frame.copy()
+        frame["trade_date"] = frame.index
+        date_col = "trade_date"
+    dates = pd.to_datetime(frame[date_col], errors="coerce")
+    mask = (dates >= pd.to_datetime(start)) & (dates <= pd.to_datetime(end))
+    return frame.loc[mask].copy(), date_col
+
+
+def _fetch_hk_hist(sym: str, adjust: str) -> pd.DataFrame:
+    try:
+        return ak.stock_hk_daily(symbol=sym, adjust=adjust)
+    except KeyError as exc:
+        if exc.args == ("date",):
+            logger.warning("hk history empty from upstream: symbol=%s adjust=%s", sym, adjust or "raw")
+            return pd.DataFrame()
+        raise
+
 def _fetch_cn_hist(sym: str, start: str, end: str) -> pd.DataFrame:
     r = requests.get(zh_sina_a_stock_hist_url.format(sym), timeout=20)
     r.raise_for_status()
-    ctx = execjs.compile(hk_js_decode)
-    data = ctx.call("d", r.text.split("=")[1].split(";")[0].replace('"', ""))
+    ctx = _cn_js_ctx()
+    data = _decode_sina_payload(r.text, ctx)
     df = pd.DataFrame(data)
     if df.empty:
         return df
@@ -125,10 +178,15 @@ def _fetch_cn_hist(sym: str, start: str, end: str) -> pd.DataFrame:
             del df[col]
     df = df.astype(float)
 
-    ar = requests.get(zh_sina_a_stock_amount_url.format(sym, sym), timeout=20)
-    ar.raise_for_status()
-    aj = demjson.decode(ar.text[ar.text.find("["):ar.text.rfind("]") + 1])
-    adf = pd.DataFrame(aj)
+    try:
+        ar = requests.get(zh_sina_a_stock_amount_url.format(sym, sym), timeout=20)
+        ar.raise_for_status()
+        aj = demjson.decode(ar.text[ar.text.find("["):ar.text.rfind("]") + 1])
+        adf = pd.DataFrame(aj)
+    except requests.RequestException as exc:
+        logger.warning("cn amount fetch failed: %s — %s", sym, exc)
+        adf = pd.DataFrame()
+
     if not adf.empty:
         adf.columns = ["date", "outstanding_share"]
         adf.index = pd.DatetimeIndex(pd.to_datetime(adf["date"], errors="coerce")).tz_localize(None)
@@ -163,8 +221,7 @@ def _fetch_us_hist_raw(sym: str) -> pd.DataFrame:
         text = r.text.strip()
         if "=" not in text:
             return empty
-        ctx = execjs.compile(zh_js_decode)
-        data = ctx.call("d", text.split("=")[1].split(";")[0].replace('"', ""))
+        data = _decode_sina_payload(text, _us_js_ctx())
         if not data:
             return empty
         df = pd.DataFrame(data)
@@ -181,20 +238,18 @@ def fetch_hist(market: str, board: str, sym: str, *,
                trade_date: str, provider_sym: str = "", adjust: str = "qfq") -> pd.DataFrame:
     start = history_start_date(trade_date)
     end = to_yyyymmdd(trade_date)
+    ps = provider_sym or provider_symbol(market, board, sym)
 
     if market == "cn":
-        ps = provider_sym or f"{board}{sym}"
         raw = _fetch_cn_hist(ps, start, end)
         src = "sina.cn_history"
     elif market == "hk":
-        ps = provider_sym or sym
         try:
-            raw = ak.stock_hk_daily(symbol=ps, adjust=adjust)
+            raw = _fetch_hk_hist(ps, adjust=adjust)
         except Exception:
-            raw = ak.stock_hk_daily(symbol=ps, adjust="")
+            raw = _fetch_hk_hist(ps, adjust="")
         src = "akshare.stock_hk_daily"
     elif market == "us":
-        ps = provider_sym or sym
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", FutureWarning)
@@ -207,15 +262,11 @@ def fetch_hist(market: str, board: str, sym: str, *,
         raise ValueError(f"unsupported market: {market}")
 
     if raw is None or raw.empty:
-        return pd.DataFrame(columns=HIST_COLUMNS)
+        return _empty_hist()
 
-    # filter date
-    date_col = "trade_date" if "trade_date" in raw.columns else "date"
-    dates = pd.to_datetime(raw[date_col], errors="coerce")
-    mask = (dates >= pd.to_datetime(start)) & (dates <= pd.to_datetime(end))
-    raw = raw.loc[mask].copy()
+    raw, date_col = _filter_hist_dates(raw, start, end)
     if raw.empty:
-        return pd.DataFrame(columns=HIST_COLUMNS)
+        return _empty_hist()
 
     return pd.DataFrame({
         "market": market, "board": clean(board), "symbol": sym,

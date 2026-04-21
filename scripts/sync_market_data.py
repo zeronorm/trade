@@ -24,7 +24,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--trade-date", default=None, help="YYYY-MM-DD or YYYYMMDD")
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--adjust", default="qfq")
-    p.add_argument("--continue-on-error", action="store_true")
+    p.add_argument("--hist-retries", type=int, default=3, help="retry times per symbol history fetch")
+    p.add_argument("--hist-retry-delay", type=float, default=5.0, help="seconds between history retries")
+    p.add_argument("--fail-fast", action="store_true", help="stop immediately when a single symbol fails")
     return p.parse_args()
 
 
@@ -43,13 +45,17 @@ def main() -> None:
         td = resolve_date(mkt, args.trade_date)
         r = sync_market_data(
             mkt, trade_date=td, limit=args.limit,
-            adjust=args.adjust, continue_on_error=args.continue_on_error,
+            adjust=args.adjust,
+            continue_on_error=not args.fail_fast,
+            hist_retries=args.hist_retries,
+            hist_retry_delay=args.hist_retry_delay,
         )
         print(
             f"{mkt}: date={r['trade_date']} "
             f"day={r['day_rows']}rows → {r['day_path']} "
-            f"hist: new={r['new_symbols']} ok={r['hist_success']} skip={r['hist_skipped']} err={r['hist_errors']} "
-            f"→ {r['hist_path']}"
+            f"hist: total={r['hist_total_symbols']} pending={r['symbols_to_fetch']} ok={r['hist_success']} "
+            f"err={r['hist_errors']} cached={r['hist_cached']} → {r['hist_path']} "
+            f"merge → {r['merge_path']}"
         )
 
 

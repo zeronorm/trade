@@ -7,4 +7,5 @@ CONDA_BIN=~/miniconda3/bin
 CONDA_ENV=dev
 LOG_DIR=${PROJECT_DIR}/logs/cron
 
-SYNC="source ${CONDA_BIN}/activate ${CONDA_ENV} && cd ${PROJECT_DIR} && python scripts/sync_market_data.py --continue-on-error"
+# 默认启用断点续跑 + 单票轻量重试
+SYNC="mkdir -p ${LOG_DIR} && source ${CONDA_BIN}/activate ${CONDA_ENV} && cd ${PROJECT_DIR} && python scripts/sync_market_data.py --hist-retries 2 --hist-retry-delay 1"

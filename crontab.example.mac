@@ -1,11 +1,18 @@
 # crontab.example.mac — macOS
 # 合并使用: cat crontab.common crontab.example.mac | crontab -
 
-# A股  收盘15:00 → 15:30
-30 15 * * 1-5  /bin/bash -l -c '${SYNC} --market cn >> ${LOG_DIR}/cn.log 2>&1'
+# 说明:
+# - 每个 market 在收盘后进入“续跑窗口”，靠断点续跑补齐当日剩余 symbol
+# - 用 pgrep 防重入；上一轮还在跑时，本轮直接跳过
 
-# 港股  收盘16:00 → 16:30
-30 16 * * 1-5  /bin/bash -l -c '${SYNC} --market hk >> ${LOG_DIR}/hk.log 2>&1'
+# A股  收盘15:00 → 从 15:30 到 23:30 每 30 分钟尝试一次
+30 15 * * 1-5  /bin/bash -l -c 'pgrep -f "[s]ync_market_data.py --market cn" >/dev/null || ${SYNC} --market cn >> ${LOG_DIR}/cn.log 2>&1'
+*/30 16-23 * * 1-5  /bin/bash -l -c 'pgrep -f "[s]ync_market_data.py --market cn" >/dev/null || ${SYNC} --market cn >> ${LOG_DIR}/cn.log 2>&1'
 
-# 美股  收盘16:00 ET → 04:30 CST 次日
-30 4  * * 2-6  /bin/bash -l -c '${SYNC} --market us >> ${LOG_DIR}/us.log 2>&1'
+# 港股  收盘16:00 → 从 16:30 到 23:30 每 30 分钟尝试一次
+30 16 * * 1-5  /bin/bash -l -c 'pgrep -f "[s]ync_market_data.py --market hk" >/dev/null || ${SYNC} --market hk >> ${LOG_DIR}/hk.log 2>&1'
+*/30 17-23 * * 1-5  /bin/bash -l -c 'pgrep -f "[s]ync_market_data.py --market hk" >/dev/null || ${SYNC} --market hk >> ${LOG_DIR}/hk.log 2>&1'
+
+# 美股  收盘16:00 ET → 从 04:30 到 11:30(Asia/Shanghai) 每 30 分钟尝试一次
+30 4 * * 2-6  /bin/bash -l -c 'pgrep -f "[s]ync_market_data.py --market us" >/dev/null || ${SYNC} --market us >> ${LOG_DIR}/us.log 2>&1'
+*/30 5-11 * * 2-6  /bin/bash -l -c 'pgrep -f "[s]ync_market_data.py --market us" >/dev/null || ${SYNC} --market us >> ${LOG_DIR}/us.log 2>&1'

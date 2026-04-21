@@ -1,6 +1,6 @@
 # trade
 
-`data` 层当前按“单 market 单次执行”组织，统一入口是 `market_data`：
+`data` 层当前按“单 market 单次执行 + 断点续跑”组织，统一入口是 `market_data`：
 
 1. 先落当天 `market_day_spot`
 2. 再在同一次执行里补 `symbol_hist`
@@ -12,16 +12,19 @@
 ### Unified Process: `market_data`
 
 - 按市场抓取某个交易日的全市场横截面
-- 同一次执行中继续同步该市场新增 symbol 的两年历史
+- 同一次执行中继续同步该市场当日全量 symbol 的两年历史
 - 使用：
   - A 股：`ak.stock_zh_a_spot()`
   - 港股：`ak.stock_hk_spot()`
   - 美股：`ak.stock_us_spot()`
 - 打平成统一 schema 后保存到：
   - `data_store/day/{market}.{trade_date}.csv`
-- 再读取同市场上一份 `market_day_spot` 做 diff
-- 只为新增 symbol 拉两年历史并汇总到：
-  - `data_store/hist/{market}.csv`
+- 历史结果按当日保存到：
+  - `data_store/hist/{market}.{trade_date}.csv`
+- 同步进度保存到：
+  - `data_store/hist/{market}.{trade_date}.progress.csv`
+- 去重汇总结果保存到：
+  - `data_store/hist/{market}.merge.{trade_date}.csv`
 
 使用：
 
@@ -66,13 +69,21 @@
 ### 统一执行 `market_data`
 
 ```bash
-python scripts/sync_market_data.py --market all --trade-date 2026-04-10 --continue-on-error
+python scripts/sync_market_data.py --market all --trade-date 2026-04-10
 ```
+
+常用参数：
+
+- `--fail-fast`：任意 symbol 失败即中断
+- `--hist-retries 2`：每只 symbol 默认重试 2 次
+- `--hist-retry-delay 1`：重试间隔秒数
 
 这会对每个 market 顺序执行：
 
 - `market_day_spot`
 - `symbol_hist`
+
+若中途中断，再次执行同一 `market + trade_date` 时会自动断点续跑。
 
 ## 示例
 

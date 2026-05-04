@@ -100,9 +100,9 @@ ecs_schedule() {
 30 15 * * 1-5 ${PIPELINE} ecs cn
 */30 16-23 * * 1-5 ${PIPELINE} ecs cn
 
-# Hong Kong: close 16:00 Asia/Shanghai, retry window 16:30-23:30.
-30 16 * * 1-5 ${PIPELINE} ecs hk
-*/30 17-23 * * 1-5 ${PIPELINE} ecs hk
+# Hong Kong: close 16:00 Asia/Shanghai, retry window 16:45-23:45, staggered from cn.
+45 16 * * 1-5 ${PIPELINE} ecs hk
+15,45 17-23 * * 1-5 ${PIPELINE} ecs hk
 
 # US: close 16:00 ET, retry window 04:30-11:30 Asia/Shanghai on Tue-Sat.
 30 4 * * 2-6 ${PIPELINE} ecs us

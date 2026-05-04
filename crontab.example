@@ -9,9 +9,9 @@
 30 15 * * 1-5  ${PIPELINE} ecs cn
 */30 16-23 * * 1-5  ${PIPELINE} ecs cn
 
-# 港股  收盘16:00 → 从 16:30 到 23:30 每 30 分钟尝试一次
-30 16 * * 1-5  ${PIPELINE} ecs hk
-*/30 17-23 * * 1-5  ${PIPELINE} ecs hk
+# 港股  收盘16:00 → 从 16:45 到 23:45 每 30 分钟尝试一次，和 A股错开
+45 16 * * 1-5  ${PIPELINE} ecs hk
+15,45 17-23 * * 1-5  ${PIPELINE} ecs hk
 
 # 美股  收盘16:00 ET → 从 04:30 到 11:30(Asia/Shanghai) 每 30 分钟尝试一次
 30 4 * * 2-6  ${PIPELINE} ecs us

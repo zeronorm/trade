@@ -11,6 +11,7 @@ CONDA_BIN="${CONDA_BIN:-${HOME}/miniconda3/bin}"
 CONDA_ENV="${CONDA_ENV:-dev}"
 LOG_DIR="${LOG_DIR:-${PROJECT_DIR}/logs/cron}"
 LOCK_DIR="${LOCK_DIR:-${LOG_DIR}/locks}"
+LOCK_SCOPE="${LOCK_SCOPE:-role}"
 COMPASS_LOG="${COMPASS_LOG:-${LOG_DIR}/pipline.log}"
 REMOTE_HOST="${REMOTE_HOST:-ecs}"
 REMOTE_PROJECT_DIR="${REMOTE_PROJECT_DIR:-/root/dev/trade}"
@@ -186,7 +187,18 @@ run_mac_market() {
 validate_role "${ROLE}" || fail "validate" "bad_role_${ROLE}" 2
 validate_market "${MARKET}" || fail "validate" "bad_market_${MARKET}" 2
 
-LOCK_PATH="${LOCK_DIR}/${ROLE}.${MARKET}.lock"
+case "${LOCK_SCOPE}" in
+  role)
+    LOCK_PATH="${LOCK_DIR}/${ROLE}.lock"
+    ;;
+  market)
+    LOCK_PATH="${LOCK_DIR}/${ROLE}.${MARKET}.lock"
+    ;;
+  *)
+    fail "validate" "bad_lock_scope_${LOCK_SCOPE}" 2
+    ;;
+esac
+
 if ! mkdir "${LOCK_PATH}" 2>/dev/null; then
   lock_info="$(cat "${LOCK_PATH}/info" 2>/dev/null || true)"
   log_event "skip" "lock" "already_running ${lock_info}"

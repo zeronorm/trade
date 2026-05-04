@@ -1,11 +1,13 @@
 # crontab 公共配置 — 不单独使用，和平台文件合并
-# 用法: cat crontab.common crontab.example | crontab -
+# 推荐使用: scripts/init_crontab.sh ecs 或 scripts/init_crontab.sh mac
 
 SHELL=/bin/bash
 PROJECT_DIR=~/YUGH/dev/trade
 CONDA_BIN=~/miniconda3/bin
 CONDA_ENV=dev
 LOG_DIR=${PROJECT_DIR}/logs/cron
+REMOTE_HOST=ecs
+REMOTE_PROJECT_DIR=/root/dev/trade
 
-# 默认启用断点续跑 + 单票轻量重试
-SYNC="mkdir -p ${LOG_DIR} && source ${CONDA_BIN}/activate ${CONDA_ENV} && cd ${PROJECT_DIR} && python scripts/sync_market_data.py --hist-retries 2 --hist-retry-delay 1"
+# crontab 只保留薄入口；run/skip、锁、日志、sync、merge 都在脚本里。
+PIPELINE=${PROJECT_DIR}/scripts/pipline.sh

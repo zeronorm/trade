@@ -96,6 +96,7 @@ def sync_market_data(
     continue_on_error: bool = True,
     hist_retries: int = 2,
     hist_retry_delay: float = 1.0,
+    merge: bool = True,
 ) -> dict:
     trade_date = normalize_trade_date(trade_date)
 
@@ -134,10 +135,12 @@ def sync_market_data(
     if pending_symbols.empty and store.hist_exists(market, trade_date):
         logger.info("hist cache hit: %s %s", market, trade_date)
         hist_out = str(store.hist_path(market, trade_date))
-        if store.hist_merge_exists(market, trade_date):
+        if merge and store.hist_merge_exists(market, trade_date):
             merge_out = str(store.hist_merge_path(market, trade_date))
-        else:
+        elif merge:
             merge_out = str(store.merge_hist(market, trade_date, current_frame=existing_hist))
+        else:
+            merge_out = ""
         return {
             "market": market, "trade_date": trade_date,
             "day_rows": len(spot),
@@ -213,7 +216,7 @@ def sync_market_data(
         store.save_hist(hist_frame, market, trade_date)
     hist_out = str(store.hist_path(market, trade_date))
 
-    merge_out = str(store.merge_hist(market, trade_date, current_frame=hist_frame))
+    merge_out = str(store.merge_hist(market, trade_date, current_frame=hist_frame)) if merge else ""
 
     return {
         "market": market, "trade_date": trade_date,

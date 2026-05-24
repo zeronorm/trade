@@ -98,7 +98,7 @@ latest_hist_date() {
 run_ecs_market() {
   local market="$1"
   local args
-  args=(--market "${market}" --hist-retries "${HIST_RETRIES}" --hist-retry-delay "${HIST_RETRY_DELAY}")
+  args=(--market "${market}" --hist-retries "${HIST_RETRIES}" --hist-retry-delay "${HIST_RETRY_DELAY}" --no-merge)
   if [ -n "${TRADE_DATE}" ]; then
     args+=(--trade-date "${TRADE_DATE}")
   fi

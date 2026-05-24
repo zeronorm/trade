@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--hist-retries", type=int, default=3, help="retry times per symbol history fetch")
     p.add_argument("--hist-retry-delay", type=float, default=5.0, help="seconds between history retries")
     p.add_argument("--fail-fast", action="store_true", help="stop immediately when a single symbol fails")
+    p.add_argument("--no-merge", action="store_true", help="skip merge step (useful on ecs)")
     return p.parse_args()
 
 
@@ -49,6 +50,7 @@ def main() -> None:
             continue_on_error=not args.fail_fast,
             hist_retries=args.hist_retries,
             hist_retry_delay=args.hist_retry_delay,
+            merge=not args.no_merge,
         )
         print(
             f"{mkt}: date={r['trade_date']} "
